@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BuildTheEarth - Warps</title>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+          integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+          crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            crossorigin=""></script>
+
+    <style>
+		html, body {
+			height: 100%;
+			margin: 0;
+		}
+		#map {
+			width: 100vw;
+			height: 100vh;
+		}
+	</style>
+
+    <style>#map { width: 700; height: 400; }
+.info { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; } .info h4 { margin: 0 0 5px; color: #777; }
+.legend { text-align: left; line-height: 18px; color: #555; } .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }</style>
+</head>
+<body>
+
+<div id='map'></div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+var template = '<form id="popup-form">\
+     <h3 id="name" style="margin-bottom:0%"><b></b></h3>\
+     <l id="info"><b></b></l>\
+     <button id="button-submit" style="margin-top:5%" type="button">Warp Here</button>\
+</form>';
+
+function popupClickHandler(e) {
+    var emptyInfo = e.target.feature.properties.info === '';
+    var popup = L.popup().setLatLng(e.latlng).setContent('<h3 style="margin-bottom:0%" value="name"><b>'+e.target.feature.properties.name+'</b></h3>' + (!emptyInfo ? '<l>'+e.target.feature.properties.info+'<br></br></l>' : '') + (e.target.feature.properties.auth ? '<button style="margin-top:5%" onclick="warp(\''+e.target.feature.properties.name+'\')">Warp Here</button>' : '')).openOn(map);
+    e.target.unbindPopup();
+    e.target.bindPopup(popup).openPopup();
+}
+
+function warp(warp) {
+    $.get('/warp', {
+        'warp': warp
+    }, function(response) {}, 'json');
+}
+
+var map = L.map('map');
+
+L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+        maxZoom: 18,
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+                '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        id: 'mapbox/streets-v11',
+        maxZoom: 18,
+        minZoom: 5,
+        tileSize: 512,
+        zoomOffset: -1
+}).addTo(map);
+
+map.doubleClickZoom.disable();
+
+$.get('/data', {}, function(response) {
+    console.log(response);
+    info.update(response);
+    L.geoJson(response.waypoints, {
+      onEachFeature: function (feature, layer) {
+        layer.on('click', popupClickHandler);
+      }
+    }).addTo(map);
+    map.setView(response.startingLocation, response.startingZoom);
+}, 'json');
+
+var info = L.control();
+
+info.onAdd = function(map) {
+        this._div = L.DomUtil.create('div', 'info');
+        return this._div;
+};
+
+info.update = function(props) {
+        this._div.innerHTML = '<b>'+props.title+'</b><br>' + props.subtitle;
+};
+
+info.addTo(map);
+
+</script>
+</body>
+</html>
