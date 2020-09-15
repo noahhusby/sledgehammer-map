@@ -61,8 +61,7 @@ public class SledgehammerMap {
         app.get("/session", ctx -> {
             ctx.sessionAttribute("uuid", ctx.queryParam("uuid"));
             ctx.sessionAttribute("key", ctx.queryParam("key"));
-            ctx.redirect("/");
-            ctx.redirect("/");
+            ctx.html("<!DOCTYPE html> <html> <body> <script> window.location.replace(\"/\"); </script> </body> </html>");
         });
 
         app.get("/data", ctx -> {
@@ -95,9 +94,13 @@ public class SledgehammerMap {
                 logger.warn("Unknown packet received from websockets!");
                 return;
             } else {
+                JSONObject data = (JSONObject) o.get("data");
+
+                String auth = (String) data.get("auth");
+                if(!auth.trim().equals(ConfigHandler.getInstance().auth)) return;
+
                 String action = (String) o.get("action");
                 if(action.equals("init")) {
-                    JSONObject data = (JSONObject) o.get("data");
                     title = (String) data.get("title");
                     subtitle = (String) data.get("subtitle");
                     double lat = (double) data.get("lat");
@@ -111,7 +114,7 @@ public class SledgehammerMap {
                     logger.info("Successfully received initialization data!");
                     ws.send(response);
                 } else if(action.equals("warp_refresh")) {
-                    JSONArray waypoints_data = (JSONArray) new JSONParser().parse((String) o.get("data"));
+                    JSONArray waypoints_data = (JSONArray) new JSONParser().parse((String) data.get("waypoints"));
                     List<Waypoint> temp = new ArrayList<>();
                     for(int x = 0; x < waypoints_data.size(); x++) {
                         JSONObject waypoint_data = (JSONObject) waypoints_data.get(x);
@@ -130,7 +133,7 @@ public class SledgehammerMap {
 
                     waypoints = temp;
                 } else if(action.equals("alive")) {
-                    JSONObject data = new JSONObject();
+                    data = new JSONObject();
                     data.put("state", "success");
                     ws.send(WebSocketHelper.generateAction("alive", data));
                 }

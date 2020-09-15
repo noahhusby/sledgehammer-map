@@ -17,6 +17,7 @@ public class ConfigHandler {
 
     public String host;
     public int port;
+    public String auth;
 
     private ConfigHandler() {
         createConfig();
@@ -30,6 +31,7 @@ public class ConfigHandler {
             JSONObject config = (JSONObject) jsonParser.parse(reader);
             host = (String) config.getOrDefault("host", "127.0.0.1");
             port = Integer.parseInt((String) config.getOrDefault("port", "7000"));
+            auth = (String) config.getOrDefault("auth", "");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
